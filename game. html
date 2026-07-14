@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birthday Balloon Game</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial,sans-serif;
+    overflow:hidden;
+    background:#f8d7e6;
+}
+
+#title{
+    position:absolute;
+    top:15px;
+    width:100%;
+    text-align:center;
+    font-size:38px;
+    color:#fff;
+    text-shadow:2px 2px 8px #000;
+    z-index:5;
+}
+
+#balloon{
+    position:absolute;
+    font-size:90px;
+    cursor:pointer;
+    user-select:none;
+}
+
+.photo{
+    position:fixed;
+    inset:0;
+    display:none;
+    background:#000;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    z-index:10;
+}
+
+.photo img{
+    max-width:100%;
+    max-height:100%;
+    object-fit:contain;
+    transform:scale(.1);
+    transition:transform .8s;
+}
+
+.message{
+    color:#fff;
+    font-size:28px;
+    padding:20px;
+    text-align:center;
+}
+
+#continue{
+    padding:12px 28px;
+    border:none;
+    border-radius:30px;
+    font-size:20px;
+    margin-bottom:30px;
+    cursor:pointer;
+}
+
+#finish{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:#111;
+    color:#fff;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    font-size:28px;
+    z-index:20;
+    text-align:center;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1 id="title">🎈 Pop the Balloon 🎈</h1>
+
+<div id="balloon">🎈</div>
+
+<!-- Background Music -->
+<audio id="bgMusic" autoplay loop>
+    <source src="music.mp3" type="audio/mpeg">
+</audio>
+
+<div class="photo" id="viewer">
+    <img id="img" src="">
+    <div class="message" id="msg"></div>
+    <button id="continue">Continue ❤️</button>
+</div>
+
+<div id="finish">
+    <h1>Love You My Princess 👸❤️</h1>
+    <p>You completed all 6 memories.</p>
+    <p>Replace this screen with your birthday video page.</p>
+</div>
+
+<script>
+// Background Music
+const music = document.getElementById("bgMusic");
+
+// Mobile browsers require user interaction before playing audio
+document.addEventListener("click", () => {
+    music.play().catch(() => {});
+}, { once:true });
+
+// Photos
+const photos=[
+    "faty1.jpg",
+    "faty2.jpg",
+    "faty3.jpg",
+    "faty4.jpg",
+    "faty5.jpg",
+    "faty6.jpg"
+];
+
+// Messages
+const messages=[
+    "❤️ Your smile brightens my day.",
+    "🥰 I feel lucky to have you.",
+    "🌹 Every memory with you is special.",
+    "💕 You make my world beautiful.",
+    "✨ My heart is addicted.",
+    "🎂 Thank you for being you ❤️"
+];
+
+let index=0;
+let x=100;
+let y=180;
+let dx=2.4;
+let dy=2.1;
+
+const balloon=document.getElementById("balloon");
+
+function move(){
+
+    if(index>=photos.length) return;
+
+    x+=dx;
+    y+=dy;
+
+    if(x<0 || x>window.innerWidth-90) dx*=-1;
+    if(y<70 || y>window.innerHeight-110) dy*=-1;
+
+    balloon.style.left=x+"px";
+    balloon.style.top=y+"px";
+
+    requestAnimationFrame(move);
+}
+
+move();
+
+balloon.onclick=()=>{
+
+    balloon.innerHTML="💥";
+
+    setTimeout(showPhoto,250);
+
+};
+
+function showPhoto(){
+
+    balloon.style.display="none";
+
+    const viewer=document.getElementById("viewer");
+    const img=document.getElementById("img");
+
+    img.src=photos[index];
+    img.style.transform="scale(.1)";
+
+    document.getElementById("msg").innerText=messages[index];
+
+    viewer.style.display="flex";
+
+    setTimeout(()=>{
+        img.style.transform="scale(1)";
+    },50);
+
+}
+
+document.getElementById("continue").onclick=()=>{
+
+    const viewer=document.getElementById("viewer");
+    const img=document.getElementById("img");
+
+    img.style.transform="scale(.1)";
+
+    setTimeout(()=>{
+
+        viewer.style.display="none";
+
+        index++;
+
+        if(index>=photos.length){
+
+            document.getElementById("finish").style.display="flex";
+            return;
+
+        }
+
+        balloon.innerHTML="🎈";
+        balloon.style.display="block";
+
+        x=Math.random()*(window.innerWidth-100);
+        y=Math.random()*(window.innerHeight-180)+80;
+
+    },500);
+
+};
+</script>
+
+</body>
+</html>
