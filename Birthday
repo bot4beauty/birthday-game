@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Happy Birthday Faty ❤️</title>
+
+<style>
+
+body{
+    margin:0;
+    background:linear-gradient(to bottom,#ffd6e7,#fff0f5);
+    font-family:Arial;
+    text-align:center;
+    overflow:hidden;
+}
+
+.container{
+    margin-top:120px;
+}
+
+h1{
+    color:#ff1493;
+    font-size:45px;
+}
+
+p{
+    font-size:22px;
+}
+
+button{
+    background:#ff1493;
+    color:white;
+    border:none;
+    padding:15px 30px;
+    font-size:20px;
+    border-radius:30px;
+}
+
+button:hover{
+    transform:scale(1.05);
+}
+
+#message{
+    display:none;
+    margin-top:30px;
+    font-size:28px;
+    color:#d6006e;
+}
+
+.heart{
+    position:absolute;
+    bottom:-50px;
+    font-size:30px;
+    animation:float 8s linear infinite;
+}
+
+@keyframes float{
+
+0%{
+transform:translateY(0);
+}
+
+100%{
+transform:translateY(-120vh);
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="heart" style="left:10%;animation-delay:0s;">❤️</div>
+<div class="heart" style="left:30%;animation-delay:2s;">💖</div>
+<div class="heart" style="left:55%;animation-delay:4s;">💕</div>
+<div class="heart" style="left:75%;animation-delay:1s;">❤️</div>
+<div class="heart" style="left:90%;animation-delay:3s;">💖</div>
+
+<div class="container">
+
+<h1>🎂 Happy Birthday Faty ❤️</h1>
+
+<p>Welcome to your birthday surprise!</p>
+
+<button onclick="showMessage()">
+Open Surprise
+</button>
+
+<div id="message">
+
+<br>
+
+❤️ I Love You Forever ❤️
+
+<br><br>
+
+🥰 You are my favorite person in the world.
+
+</div>
+
+</div>
+
+<script>
+
+function showMessage(){
+
+document.getElementById("message").style.display="block";
+
+}
+
+</script>
+
+</body>
+</html>
