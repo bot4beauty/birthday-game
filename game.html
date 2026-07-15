@@ -1,117 +1,497 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Birthday Balloon Game</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{overflow:hidden;font-family:Arial,sans-serif;background:linear-gradient(#87ceeb,#ffe4e1)}
-#title{position:fixed;top:15px;width:100%;text-align:center;color:#fff;text-shadow:0 0 8px #000;z-index:10}
-#balloon{position:absolute;font-size:90px;cursor:pointer;user-select:none}
-.photo{position:fixed;inset:0;display:none;background:#000;justify-content:center;align-items:center;flex-direction:column;z-index:100}
-.photo img{width:100%;height:100%;object-fit:contain}
-.message{position:absolute;bottom:120px;color:#fff;font-size:26px;text-align:center;width:90%}
-#continue{position:absolute;bottom:40px;padding:12px 28px;border:none;border-radius:30px;background:#ff1493;color:#fff}
-#finish{display:none;position:fixed;inset:0;background:#111;color:#fff;justify-content:center;align-items:center;flex-direction:column;text-align:center}
-.confetti{position:fixed;width:8px;height:8px;animation:fall 2s linear forwards}
-@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Birthday Balloon Game</title>
+  <style>
+    /* ----- RESET & BASE ----- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      overflow: hidden;
+      font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      background: #0b0a1a;
+    }
+
+    /* ----- ANIMATED GRADIENT BACKGROUND + FLOATING ELEMENTS ----- */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: linear-gradient(135deg, #1a0b2e 0%, #3b1b4b 30%, #6a2b5c 60%, #b34a6b 85%, #f7b07c 100%);
+      background-size: 400% 400%;
+      animation: gradientShift 18s ease infinite;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    /* Floating hearts, stars, petals, particles */
+    .floating-element {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1;
+      border-radius: 50%;
+      opacity: 0.5;
+      animation: floatUp linear infinite;
+    }
+    .heart {
+      color: #ff4d7a;
+      font-size: 24px;
+      text-shadow: 0 0 20px #ff4d7a80;
+      animation: floatHeart 8s ease-in-out infinite;
+    }
+    .star {
+      background: white;
+      width: 6px;
+      height: 6px;
+      box-shadow: 0 0 20px #fff9c4;
+      animation: twinkle 3s ease-in-out infinite alternate;
+    }
+    .petal {
+      background: radial-gradient(circle at 30% 30%, #ffb7c5, #ff6f91);
+      width: 14px;
+      height: 14px;
+      border-radius: 50% 0 50% 50%;
+      opacity: 0.5;
+      animation: petalFall 12s linear infinite;
+    }
+    .glow-particle {
+      background: #ffd6a0;
+      width: 8px;
+      height: 8px;
+      filter: blur(4px);
+      opacity: 0.35;
+      animation: glowPulse 5s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatHeart {
+      0% { transform: translateY(0) scale(0.8) rotate(0deg); opacity: 0.3; }
+      50% { transform: translateY(-60px) scale(1.2) rotate(15deg); opacity: 0.7; }
+      100% { transform: translateY(0) scale(0.8) rotate(0deg); opacity: 0.3; }
+    }
+    @keyframes twinkle {
+      0% { opacity: 0.2; transform: scale(0.6); }
+      100% { opacity: 0.9; transform: scale(1.4); }
+    }
+    @keyframes petalFall {
+      0% { transform: translateY(-10vh) rotate(0deg) translateX(0); opacity: 0.6; }
+      100% { transform: translateY(110vh) rotate(720deg) translateX(40px); opacity: 0; }
+    }
+    @keyframes glowPulse {
+      0% { transform: scale(0.8); opacity: 0.2; }
+      100% { transform: scale(2.2); opacity: 0.6; }
+    }
+    @keyframes floatUp {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.6; }
+      100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* ----- TITLE (elegant romantic) ----- */
+    #title {
+      position: fixed;
+      top: 18px;
+      width: 100%;
+      text-align: center;
+      z-index: 20;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-weight: 700;
+      font-size: clamp(1.8rem, 7vw, 3.2rem);
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #fce6b4, #ffb6c1, #d9a7e0, #fce6b4);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 40px rgba(255, 200, 200, 0.3), 0 0 80px rgba(255, 150, 200, 0.2);
+      animation: gradientText 6s ease infinite, softGlow 3s ease-in-out infinite alternate;
+      padding: 0 16px;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+    }
+    @keyframes gradientText {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes softGlow {
+      0% { text-shadow: 0 0 20px rgba(255, 200, 200, 0.2), 0 0 40px rgba(255, 150, 200, 0.1); }
+      100% { text-shadow: 0 0 40px rgba(255, 200, 200, 0.5), 0 0 80px rgba(255, 100, 200, 0.3); }
+    }
+
+    /* ----- BALLOON (glow, shadow, bounce, smooth) ----- */
+    #balloon {
+      position: absolute;
+      font-size: clamp(70px, 15vw, 120px);
+      cursor: pointer;
+      user-select: none;
+      z-index: 30;
+      filter: drop-shadow(0 20px 30px rgba(255, 80, 120, 0.5)) drop-shadow(0 0 40px rgba(255, 100, 150, 0.3));
+      animation: balloonFloat 3s ease-in-out infinite alternate, balloonBounce 1.2s ease-in-out infinite;
+      transition: transform 0.15s ease;
+      will-change: transform;
+      text-shadow: 0 0 40px rgba(255, 200, 200, 0.4);
+    }
+    @keyframes balloonFloat {
+      0% { transform: translateY(-6px) scale(1); }
+      100% { transform: translateY(12px) scale(1.02); }
+    }
+    @keyframes balloonBounce {
+      0% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-8px) scale(1.03); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    #balloon:active {
+      transform: scale(0.92);
+      filter: drop-shadow(0 0 60px #ff8aae);
+    }
+
+    /* ----- PHOTO VIEWER (glassmorphism, premium) ----- */
+    .photo {
+      position: fixed;
+      inset: 0;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 200;
+      background: rgba(10, 5, 20, 0.5);
+      backdrop-filter: blur(14px) saturate(180%);
+      -webkit-backdrop-filter: blur(14px) saturate(180%);
+      animation: fadeZoom 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+      padding: 20px;
+    }
+    @keyframes fadeZoom {
+      0% { opacity: 0; transform: scale(0.92); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .photo-card {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 48px;
+      padding: 24px 20px 30px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+    .photo img {
+      width: 100%;
+      height: auto;
+      max-height: 60vh;
+      object-fit: contain;
+      border-radius: 28px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+      background: #1a1025;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .message {
+      color: #fff4f0;
+      font-size: clamp(1.2rem, 4.5vw, 1.8rem);
+      text-align: center;
+      margin: 20px 8px 12px;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-weight: 300;
+      letter-spacing: 0.5px;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      background: linear-gradient(135deg, #ffe6e0, #fbc2d5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      padding: 0 10px;
+      line-height: 1.4;
+    }
+    #continue {
+      margin-top: 6px;
+      padding: 14px 40px;
+      border: none;
+      border-radius: 60px;
+      background: linear-gradient(135deg, #ff4d7a, #ff8a9e);
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 24px rgba(255, 60, 120, 0.5), 0 0 0 1px rgba(255,255,255,0.1);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-family: 'Segoe UI', sans-serif;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.2);
+      width: fit-content;
+      min-width: 160px;
+    }
+    #continue:hover {
+      transform: scale(1.04);
+      box-shadow: 0 12px 40px rgba(255, 60, 120, 0.7), 0 0 40px rgba(255, 100, 150, 0.4);
+      background: linear-gradient(135deg, #ff3b6f, #ff7a94);
+    }
+    #continue:active {
+      transform: scale(0.96);
+    }
+
+    /* ----- FINISH SCREEN (premium celebration) ----- */
+    #finish {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      background: radial-gradient(circle at center, #1e0a2a, #0b0512);
+      text-align: center;
+      padding: 20px;
+      animation: finishGlow 2s ease-in-out infinite alternate;
+    }
+    @keyframes finishGlow {
+      0% { box-shadow: inset 0 0 80px rgba(255, 80, 150, 0.1); }
+      100% { box-shadow: inset 0 0 150px rgba(255, 120, 200, 0.3); }
+    }
+    #finish h1 {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-size: clamp(2.8rem, 12vw, 5rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, #fddb92, #fda085, #f6b0c0, #fbc2d5);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientText 4s ease infinite, pulseGlow 2s ease-in-out infinite alternate;
+      text-shadow: 0 0 60px rgba(255, 200, 200, 0.3);
+      letter-spacing: 2px;
+      filter: drop-shadow(0 10px 30px rgba(255,100,150,0.3));
+    }
+    @keyframes pulseGlow {
+      0% { filter: drop-shadow(0 0 30px rgba(255, 100, 150, 0.3)); }
+      100% { filter: drop-shadow(0 0 80px rgba(255, 150, 200, 0.6)); }
+    }
+    #finish p {
+      color: #f0d0e0;
+      font-size: clamp(1.4rem, 5vw, 2.4rem);
+      margin-top: 16px;
+      font-family: 'Georgia', serif;
+      letter-spacing: 3px;
+      text-shadow: 0 0 40px rgba(255, 200, 200, 0.2);
+      background: linear-gradient(135deg, #fce4ec, #f8bbd0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ----- CONFETTI (keeps original) ----- */
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      z-index: 150;
+      pointer-events: none;
+      animation: fall 2.2s linear forwards;
+      border-radius: 2px;
+    }
+    @keyframes fall {
+      to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ----- RESPONSIVE TWEAKS ----- */
+    @media (max-width: 480px) {
+      .photo-card { padding: 16px 12px 20px; }
+      #continue { padding: 12px 28px; font-size: 1rem; min-width: 120px; }
+      .message { margin: 12px 4px 8px; }
+    }
+  </style>
 </head>
 <body>
-<h1 id="title">🎈 Pop the Balloon 🎈</h1>
-<div id="balloon">🎈</div>
+  <!-- Background layers -->
+  <div class="bg-layer"></div>
+  <!-- floating decorations generated by js -->
 
-<audio id="bgMusic" autoplay loop><source src="music.mp3" type="audio/mpeg"></audio>
-<audio id="popSound" preload="auto"><source src="pop.mp3" type="audio/mpeg"></audio>
+  <h1 id="title">🎈 Pop the Balloon 🎈</h1>
+  <div id="balloon">🎈</div>
 
-<div class="photo" id="viewer">
-<img id="img">
-<div class="message" id="msg"></div>
-<button id="continue">Continue ❤️</button>
-</div>
+  <audio id="bgMusic" autoplay loop><source src="music.mp3" type="audio/mpeg"></audio>
+  <audio id="popSound" preload="auto"><source src="pop.mp3" type="audio/mpeg"></audio>
 
-<div id="finish">
-<h1>🎉 Happy Birthday ❤️</h1>
-<p>Love You Forever!</p>
-</div>
+  <div class="photo" id="viewer">
+    <div class="photo-card">
+      <img id="img" src="" alt="birthday memory">
+      <div class="message" id="msg"></div>
+      <button id="continue">Continue ❤️</button>
+    </div>
+  </div>
 
-<script>
-const photos=["faty1.jpg","faty2.jpg","faty3.jpg","faty4.jpg","faty5.jpg","faty6.jpg"];
-const messages=[
-"❤️ Your smile brightens my day.",
-"🥰 I feel lucky to have you.",
-"🌹 Every memory with you is special.",
-"💕 You make my world beautiful.",
-"✨ My heart is addicted.",
-"🎂 Happy Birthday My Love!"
-];
-const balloons=["🔴","🟠","🟡","🟢","🔵","🟣","🩷","🎈"];
-const balloon=document.getElementById("balloon");
-const viewer=document.getElementById("viewer");
-const img=document.getElementById("img");
-const msg=document.getElementById("msg");
-const pop=document.getElementById("popSound");
-document.addEventListener("click",()=>document.getElementById("bgMusic").play().catch(()=>{}),{once:true});
+  <div id="finish">
+    <h1>🎉 Happy Birthday ❤️</h1>
+    <p>Love You Forever!</p>
+  </div>
 
-let i=0,x=120,y=150,dx=3,dy=2.5;
-function randBalloon(){balloon.textContent=balloons[Math.floor(Math.random()*balloons.length)]}
-randBalloon();
+  <script>
+    (function() {
+      // ----- DATA (unchanged) -----
+      const photos = ["faty1.jpg","faty2.jpg","faty3.jpg","faty4.jpg","faty5.jpg","faty6.jpg"];
+      const messages = [
+        "❤️ Your smile brightens my day.",
+        "🥰 I feel lucky to have you.",
+        "🌹 Every memory with you is special.",
+        "💕 You make my world beautiful.",
+        "✨ My heart is addicted.",
+        "🎂 Happy Birthday My Love!"
+      ];
+      const balloons = ["🔴","🟠","🟡","🟢","🔵","🟣","🩷","🎈"];
+      const balloon = document.getElementById("balloon");
+      const viewer = document.getElementById("viewer");
+      const img = document.getElementById("img");
+      const msg = document.getElementById("msg");
+      const pop = document.getElementById("popSound");
+      const bgMusic = document.getElementById("bgMusic");
 
-function confetti(){
- for(let j=0;j<25;j++){
-   const c=document.createElement("div");
-   c.className="confetti";
-   c.style.left=Math.random()*100+"vw";
-   c.style.top="-10px";
-   c.style.background=`hsl(${Math.random()*360},100%,50%)`;
-   document.body.appendChild(c);
-   setTimeout(()=>c.remove(),2000);
- }
-}
-function move(){
- x+=dx;y+=dy;
- if(x<=0){x=0;dx=Math.abs(dx)}
- if(x>=innerWidth-balloon.offsetWidth){x=innerWidth-balloon.offsetWidth;dx=-Math.abs(dx)}
- if(y<=70){y=70;dy=Math.abs(dy)}
- if(y>=innerHeight-balloon.offsetHeight){y=innerHeight-balloon.offsetHeight;dy=-Math.abs(dy)}
- balloon.style.left=x+"px";
- balloon.style.top=y+"px";
- requestAnimationFrame(move);
-}
-move();
+      // ----- floating decorations (hearts, stars, petals, particles) -----
+      function spawnFloatingElements() {
+        const container = document.body;
+        // hearts
+        for (let i = 0; i < 8; i++) {
+          const el = document.createElement('div');
+          el.className = 'floating-element heart';
+          el.textContent = ['❤️','💖','💕','🌸','✨','💗'][Math.floor(Math.random()*6)];
+          el.style.left = Math.random() * 100 + '%';
+          el.style.top = Math.random() * 100 + '%';
+          el.style.fontSize = (16 + Math.random() * 28) + 'px';
+          el.style.animationDuration = (7 + Math.random() * 8) + 's';
+          el.style.animationDelay = (Math.random() * 6) + 's';
+          container.appendChild(el);
+        }
+        // stars
+        for (let i = 0; i < 30; i++) {
+          const el = document.createElement('div');
+          el.className = 'floating-element star';
+          el.style.left = Math.random() * 100 + '%';
+          el.style.top = Math.random() * 100 + '%';
+          el.style.width = (3 + Math.random() * 6) + 'px';
+          el.style.height = el.style.width;
+          el.style.animationDelay = (Math.random() * 4) + 's';
+          el.style.animationDuration = (2.5 + Math.random() * 3) + 's';
+          container.appendChild(el);
+        }
+        // petals
+        for (let i = 0; i < 15; i++) {
+          const el = document.createElement('div');
+          el.className = 'floating-element petal';
+          el.style.left = Math.random() * 100 + '%';
+          el.style.top = '-10%';
+          el.style.animationDuration = (10 + Math.random() * 8) + 's';
+          el.style.animationDelay = (Math.random() * 10) + 's';
+          el.style.width = (10 + Math.random() * 14) + 'px';
+          el.style.height = (10 + Math.random() * 14) + 'px';
+          container.appendChild(el);
+        }
+        // glow particles
+        for (let i = 0; i < 20; i++) {
+          const el = document.createElement('div');
+          el.className = 'floating-element glow-particle';
+          el.style.left = Math.random() * 100 + '%';
+          el.style.top = Math.random() * 100 + '%';
+          el.style.width = (4 + Math.random() * 12) + 'px';
+          el.style.height = el.style.width;
+          el.style.animationDelay = (Math.random() * 5) + 's';
+          el.style.animationDuration = (4 + Math.random() * 5) + 's';
+          container.appendChild(el);
+        }
+      }
+      spawnFloatingElements();
 
-balloon.onclick=()=>{
- pop.currentTime=0;pop.play().catch(()=>{});
- confetti();
- balloon.textContent="💥";
- setTimeout(()=>{
-   balloon.style.display="none";
-   img.src=photos[i];
-   msg.textContent=messages[i];
-   viewer.style.display="flex";
- },250);
-};
+      // ----- state (unchanged logic) -----
+      let i = 0;
+      let x = 120, y = 150, dx = 3, dy = 2.5;
 
-document.getElementById("continue").onclick=()=>{
- viewer.style.display="none";
- i++;
- if(i>=photos.length){
-   document.getElementById("finish").style.display="flex";
-   return;
- }
- randBalloon();
- balloon.style.display="block";
- x=Math.random()*(innerWidth-balloon.offsetWidth);
- y=80+Math.random()*(innerHeight-balloon.offsetHeight-80);
- dx=(Math.random()>.5?1:-1)*(2+Math.random()*2);
- dy=(Math.random()>.5?1:-1)*(2+Math.random()*2);
-};
+      function randBalloon() {
+        balloon.textContent = balloons[Math.floor(Math.random() * balloons.length)];
+      }
+      randBalloon();
 
-window.addEventListener("resize",()=>{
- x=Math.min(x,innerWidth-balloon.offsetWidth);
- y=Math.min(y,innerHeight-balloon.offsetHeight);
-});
-</script>
+      // confetti (original)
+      function confetti() {
+        for (let j = 0; j < 30; j++) {
+          const c = document.createElement("div");
+          c.className = "confetti";
+          c.style.left = Math.random() * 100 + "vw";
+          c.style.top = "-10px";
+          c.style.background = `hsl(${Math.random() * 360}, 90%, 65%)`;
+          c.style.width = (6 + Math.random() * 8) + 'px';
+          c.style.height = (6 + Math.random() * 8) + 'px';
+          document.body.appendChild(c);
+          setTimeout(() => c.remove(), 2200);
+        }
+      }
+
+      // balloon movement (exactly as before)
+      function move() {
+        x += dx;
+        y += dy;
+        if (x <= 0) { x = 0; dx = Math.abs(dx); }
+        if (x >= innerWidth - balloon.offsetWidth) { x = innerWidth - balloon.offsetWidth; dx = -Math.abs(dx); }
+        if (y <= 70) { y = 70; dy = Math.abs(dy); }
+        if (y >= innerHeight - balloon.offsetHeight) { y = innerHeight - balloon.offsetHeight; dy = -Math.abs(dy); }
+        balloon.style.left = x + "px";
+        balloon.style.top = y + "px";
+        requestAnimationFrame(move);
+      }
+      move();
+
+      // click handler (unchanged)
+      balloon.onclick = function() {
+        pop.currentTime = 0;
+        pop.play().catch(() => {});
+        confetti();
+        balloon.textContent = "💥";
+        setTimeout(() => {
+          balloon.style.display = "none";
+          img.src = photos[i];
+          msg.textContent = messages[i];
+          viewer.style.display = "flex";
+        }, 250);
+      };
+
+      // continue button (unchanged logic)
+      document.getElementById("continue").onclick = function() {
+        viewer.style.display = "none";
+        i++;
+        if (i >= photos.length) {
+          document.getElementById("finish").style.display = "flex";
+          return;
+        }
+        randBalloon();
+        balloon.style.display = "block";
+        x = Math.random() * (innerWidth - balloon.offsetWidth);
+        y = 80 + Math.random() * (innerHeight - balloon.offsetHeight - 80);
+        dx = (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 2);
+        dy = (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 2);
+      };
+
+      // resize (unchanged)
+      window.addEventListener("resize", function() {
+        x = Math.min(x, innerWidth - balloon.offsetWidth);
+        y = Math.min(y, innerHeight - balloon.offsetHeight);
+      });
+
+      // autoplay music (unchanged)
+      document.addEventListener("click", function() {
+        bgMusic.play().catch(() => {});
+      }, { once: true });
+
+    })();
+  </script>
 </body>
-</html>
+                                                                               </html>
