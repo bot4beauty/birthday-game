@@ -1,0 +1,637 @@
+import asyncio
+from datetime import datetime
+from telegram import Update, WebAppInfo
+from telegram.ext import (
+    Application, CommandHandler, CallbackQueryHandler,
+    ContextTypes, ConversationHandler, MessageHandler, filters
+)
+
+from config import *
+from animations import *
+from helpers import *
+from reasons import *
+
+# ==============================
+# ACCESS CONTROL
+# ==============================
+
+async def check_access(update: Update) -> bool:
+    user = update.effective_user
+    if user is None or user.id not in ALLOWED_USERS:
+        target = update.message or update.callback_query.message if update.callback_query else None
+        if target:
+            await target.reply_text(
+                "You're not my honey ❤️\nGet lost 🤨🖕"
+            )
+        return False
+    return True
+
+# ==============================
+# START COMMAND
+# ==============================
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update):
+        return
+    
+    loading = await update.message.reply_text("🎁 A special birthday surprise is being prepared... 💖")
+    
+    await animate_typing(context, update.effective_chat.id, 1.5)
+    await animate_loading_hearts(update, context, 1.5)
+    await safe_delete(loading)
+    await animate_video_reveal(update, context)
+    
+    try:
+        with open(FILES["birthday_video"], "rb") as video:
+            await update.message.reply_video(
+                video=video,
+                caption="🎥 𝙷𝚊𝚙𝚙𝚢𝚢𝚢𝚢𝚢 𝙱𝚒𝚛𝚝𝚑𝚍𝚊𝚢𝚢𝚢𝚢𝚢 💕",
+            )
+    except Exception as e:
+        await update.message.reply_text(f"🎥 birthday.mp4 not found: {e}")
+    
+    await animate_sparkle(update, context)
+    await animate_final_celebration(update, context)
+    await animate_emotional_pause(context, update.effective_chat.id, 1.5)
+    
+    await update.message.reply_text(
+        "𝙷𝚊𝚙𝚙𝚢 𝙱𝚒𝚛𝚝𝚑𝚍𝚊𝚢, 𝙼𝚢 𝙻𝚘𝚟𝚎 🥳🎂🥰\n\n"
+        "I've been waiting for this day for so long. ❤️\n\n"
+        "Today is my one and only dear's birthday. 😘😁\n\n"
+        "This isn't just a Telegram bot...\n\n"
+        "It's something I created with all my heart, only for my dear's birthday. 💝\n\n"
+        "Every memory,\n"
+        "every word,\n"
+        "every photo,\n"
+        "every video,\n"
+        "and every little surprise...\n"
+        "was made only for you. 🥹❤️\n\n"
+        "For days, I prepared this with love, hoping it would make everything perfect. 💫\n\n"
+        "I hope this brings a big smile to your beautiful face. ☺️💕\n\n"
+        "Don't rush.\n\n"
+        "Experience this little journey with your heart. ❤️\n\n"
+        "Every chapter will reveal another surprise waiting just for you. 🎁✨\n\n"
+        "Are you ready, my dear? 🥰",
+        reply_markup=create_single_button("✨ Begin the Journey", "begin_journey"),
+    )
+
+# ==============================
+# NAVIGATION HANDLERS
+# ==============================
+
+async def handle_begin_journey(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    await edit_navigation_message(
+        update, context,
+        "✨ *Beginning our journey...* ✨\n\n_Let's walk through our memories together..._ ❤️"
+    )
+    
+    await animate_treasure_chest(update, context)
+    
+    years, months, days, total_days, total_hours, total_minutes, total_seconds = calculate_journey(RELATIONSHIP_START)
+    start_date = RELATIONSHIP_START.strftime("%d %B %Y")
+    
+    await animate_love_meter(update, context)
+    await animate_emotional_pause(context, update.effective_chat.id, 0.5)
+    
+    journey_message = (
+        f"❤️ Our Journey ❤️\n\n"
+        f"📅 We met on:\n{start_date}\n\n"
+        f"💕 We've been together for:\n\n"
+        f"🗓 {years} Years\n🌸 {months} Months\n💖 {days} Days\n\n"
+        f"⏳ Total Days: {total_days:,}\n"
+        f"⏰ Total Hours: {total_hours:,}\n"
+        f"🕒 Total Minutes: {total_minutes:,}\n"
+        f"⏱ Total Seconds: {total_seconds:,}\n\n"
+        f"❤️ Every second that passes is another second I get to love you.\n\n"
+        f"💖 Every day with you is another beautiful memory.\n"
+        f"Thank you for being part of my life. ❤️"
+    )
+    
+    await query.message.reply_text(journey_message)
+    await animate_fireworks(update, context)
+    await send_chapter_navigation(update, context, "our_song", "continue_to_song")
+
+async def handle_continue_to_song(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    await edit_navigation_message(
+        update, context,
+        "🎵 *Moving to our song...* 🎵\n\n_Music holds our most precious memories..._ ❤️"
+    )
+    
+    await animate_music_reveal(update, context)
+    await animate_secret_door(update, context)
+    
+    await query.message.reply_text(
+        "🎵 Memory Check ❤️\n\n"
+        "Every time this song plays,\n"
+        "it reminds me of us. 🥰❤️\n\n"
+        "Now tell me...\n\n"
+        "Do you still remember its name? 😏🎶\n\n"
+        "✍️ Type the song name below. 😌💕"
+    )
+    
+    context.user_data['conversation_state'] = SONG_ANSWER
+    context.user_data['return_to_iwish'] = True
+    return ConversationHandler.END
+
+# ==============================
+# CONVERSATION HANDLERS
+# ==============================
+
+async def handle_song_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update):
+        return
+    
+    user_answer = update.message.text.strip()
+    
+    if user_answer.lower() == "jhol":
+        await animate_thinking(update, context)
+        await animate_memory_unlock(update, context)
+        
+        await update.message.reply_text(
+            "🥹 Awwww...\n\n"
+            "You actually remembered it! 🥲😘\n\n"
+            "I knew my baby wouldn't forget our song. 😌💕\n\n"
+            "Every time this song plays,\n"
+            "it reminds me of us and all the beautiful memories we've made together. ❤️\n\n"
+            "As promised...\n\n"
+            "Here's our song. 🎶❤️"
+        )
+        
+        await animate_music_reveal(update, context)
+        await safe_send_audio(context, update.effective_chat.id, FILES["our_song"], "Our Song")
+        await animate_balloons(update, context)
+        
+        await update.message.reply_text(
+            "🎉 Congratulations! 🥳❤️\n\n"
+            "You unlocked another surprise. ✨\n\n"
+            "But don't think it's over yet... 😏\n\n"
+            "I've still got more surprises waiting just for you. 🥹❤️"
+        )
+        
+        context.user_data['conversation_state'] = None
+        
+        if context.user_data.get('return_to_iwish', False):
+            context.user_data['return_to_iwish'] = False
+            await send_chapter_navigation(update, context, "one_last_wish", "continue_to_iwish")
+        
+        return ConversationHandler.END
+    
+    else:
+        anim_msg = await animate_thinking(update, context)
+        await safe_delete(anim_msg)
+        await animate_progress_bar(update, context, "Processing wrong answer...")
+        
+        wrong_msg = await update.message.reply_text(
+            "🙄 Wrong answer. 😒\n\n"
+            "Hate you. 🙂👍\n\n"
+            "You really forgot OUR song? 😭😂\n\n"
+            "Fine...\n\n"
+            "I'll give you one last chance.\n\n"
+            "Answer this memory quiz correctly,\n"
+            "and I'll forgive you. 😏💕"
+        )
+        
+        await asyncio.sleep(3)
+        await safe_delete(wrong_msg)
+        await animate_gift_opening(update, context)
+        
+        await update.message.reply_text(
+            "🧠 Memory Quiz ❤️\n\n"
+            "Since you forgot our song... 😒😂\n\n"
+            "Let's see if you know me at all. 😏\n\n"
+            "What do you hate the most about me? 😒🤨\n\n"
+            "✍️ Type your answer below. 😌💕"
+        )
+        
+        context.user_data['conversation_state'] = QUIZ_ANSWER
+        return ConversationHandler.END
+
+async def handle_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update):
+        return
+    
+    user_answer = update.message.text.strip()
+    
+    if user_answer.lower() == "nose":
+        await animate_rose_bloom(update, context)
+        
+        await update.message.reply_text(
+            "😂 HAHAHA!\n\n"
+            "I knew it! 🙂💔👍\n\n"
+            "I know you, thanks for making me this happy on this special day. 😊💔👍"
+        )
+        
+        await animate_loading_hearts(update, context, 1.5)
+        
+        await update.message.reply_text(
+            "Hehehe... 😌💕\n\n"
+            "You earned it.\n\n"
+            "As promised...\n\n"
+            "Here's our song. 🎶❤️"
+        )
+        
+        await animate_music_reveal(update, context)
+        await safe_send_audio(context, update.effective_chat.id, FILES["our_song"], "Our Song")
+        await animate_fireworks(update, context)
+        
+        await update.message.reply_text(
+            "🎉 Congratulations! 🥳❤️\n\n"
+            "You unlocked another surprise. ✨\n\n"
+            "But don't think it's over yet... 😏\n\n"
+            "I've still got more surprises waiting just for you. 🥹❤️"
+        )
+        
+        context.user_data['conversation_state'] = None
+        
+        if context.user_data.get('return_to_iwish', False):
+            context.user_data['return_to_iwish'] = False
+            await send_chapter_navigation(update, context, "one_last_wish", "continue_to_iwish")
+        
+        return ConversationHandler.END
+    
+    else:
+        await animate_thinking(update, context)
+        await update.message.reply_text(
+            "🙄 Wrong answer. 😒\n\n"
+            "Use your stupid brain again. 🤫🥸\n\n"
+            "💡 Hint:\n"
+            "You see it every time I send you one of my pictures. 👀😂\n\n"
+            "✍️ Try one more time. 😏💕"
+        )
+        return ConversationHandler.END
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update):
+        return
+    
+    await animate_transition(update, context)
+    context.user_data['conversation_state'] = None
+    await update.message.reply_text(
+        "Okay, let's pause this for now. 😊\n\n"
+        "Whenever you're ready to try again, just tap the button! 💕"
+    )
+    return ConversationHandler.END
+
+async def fallback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update):
+        return
+    
+    state = context.user_data.get('conversation_state')
+    
+    if state == SONG_ANSWER:
+        await handle_song_answer(update, context)
+    elif state == QUIZ_ANSWER:
+        await handle_quiz_answer(update, context)
+    else:
+        await animate_sparkle(update, context)
+        await update.message.reply_text(
+            "💕 I'm not expecting an answer right now.\n\n"
+            "If you want to continue the journey, press the Continue button!"
+        )
+
+# ==============================
+# I WISH HANDLERS
+# ==============================
+
+async def handle_continue_to_iwish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    await edit_navigation_message(
+        update, context,
+        "💭 *Beginning Chapter 3...* 💭\n\n_Some wishes are meant to be shared..._ ❤️"
+    )
+    
+    await handle_iwish_start(update, context, query)
+
+async def handle_iwish_start(update, context, query):
+    await query.message.reply_text(
+        "🌌 *Close your eyes for a moment...* 🌌\n\n"
+        "✨ ✨ ✨ ✨ ✨\n🌟 ⭐ 🌟 ⭐ 🌟\n✨ ✨ ✨ ✨ ✨\n\n"
+        "_Let the stars guide your heart..._ 💫",
+        parse_mode=PARSE_MD
+    )
+    
+    await asyncio.sleep(2)
+    
+    try:
+        with open(FILES["wish_image"], "rb") as photo:
+            await query.message.reply_photo(
+                photo=photo,
+                caption="🔒 *Touch the memory to reveal it.* ❤️\n\n_A moment frozen in time, waiting for you..._",
+                parse_mode=PARSE_MD,
+                reply_markup=create_single_button("✨ Reveal Memory", "iwish_reveal")
+            )
+    except Exception as e:
+        await query.message.reply_text(
+            "🔒 *Touch the memory to reveal it.* ❤️\n\n_A moment frozen in time, waiting for you..._",
+            parse_mode=PARSE_MD,
+            reply_markup=create_single_button("✨ Reveal Memory", "iwish_reveal")
+        )
+
+async def handle_iwish_reveal(update, context, query):
+    await safe_edit_caption(
+        query.message,
+        "💫 *Revealing your memory...* 💫\n\n"
+        "❤️ ✨ ❤️ ✨ ❤️\n✨ *Your memory is here* ✨\n"
+        "❤️ ✨ ❤️ ✨ ❤️\n\n_Every heartbeat brings us closer..._ 💕",
+        PARSE_MD
+    )
+    
+    await asyncio.sleep(1.5)
+    
+    romantic_caption = (
+        "I wish I could celebrate this birthday with you...\n\n"
+        "Watching the blue sky...\n\n"
+        "...and the blinking stars,\n"
+        "looking at your beautiful face,\n"
+        "cutting the cake together,\n"
+        "and giving you a kiss on your cheek...\n\n"
+        "...while the whole world sleeps. ❤️"
+    )
+    
+    try:
+        with open(FILES["romantic_image"], "rb") as photo:
+            await query.message.reply_photo(photo=photo, caption=romantic_caption, parse_mode=PARSE_MD)
+    except Exception:
+        await query.message.reply_text(f"📷 romantic_moment.jpg not found.\n\n{romantic_caption}", parse_mode=PARSE_MD)
+    
+    await asyncio.sleep(2)
+    
+    await query.message.reply_text(
+        "💃 *I'd love to dance with you...* 💃\n\n"
+        "*Just the two of us...* 💕\n\n"
+        "*Under those stars...* ✨\n\n"
+        "*With my favorite music.* ❤️",
+        parse_mode=PARSE_MD
+    )
+    
+    await asyncio.sleep(1.5)
+    
+    context.user_data['iwish_options'] = [
+        "Del", "White Roses", "Dandelions", 
+        "Jhol", "Apka Hi Kehna", "I Think They Call This Love"
+    ]
+    context.user_data['iwish_state'] = 'music_guessing'
+    
+    game_msg = await query.message.reply_text(
+        "🎵 *Guess my favorite music!* ❤️\n\n_Choose wisely..._ 😏💕",
+        parse_mode=PARSE_MD
+    )
+    context.user_data['iwish_game_message_id'] = game_msg.message_id
+    
+    await show_music_options(update, context, query, game_msg)
+
+async def show_music_options(update, context, query, game_msg=None):
+    options = context.user_data.get('iwish_options', [])
+    
+    if not options:
+        try:
+            await game_msg.edit_text("🤔")
+            await asyncio.sleep(0.4)
+            await game_msg.edit_text("🤔...")
+            await asyncio.sleep(0.4)
+            await game_msg.edit_text("🤔💭")
+            await asyncio.sleep(0.4)
+            await game_msg.edit_text("🥵🤌")
+            await asyncio.sleep(0.4)
+            
+            await game_msg.edit_text("Seems like you're tired... 🥵🤌", parse_mode=PARSE_MD)
+            await asyncio.sleep(1.5)
+            await game_msg.edit_text("Thanks... I thought you'd know me better. 🙂💔👍", parse_mode=PARSE_MD)
+            await asyncio.sleep(1.5)
+            
+            await game_msg.edit_text(
+                "🎶 *Ready to hear it?* 🎶\n\n_Press Play..._ ❤️",
+                reply_markup=create_single_button("▶️ Play It", "iwish_play"),
+                parse_mode=PARSE_MD
+            )
+            context.user_data['iwish_state'] = 'waiting_for_play'
+        except Exception:
+            pass
+        return
+    
+    keyboard = []
+    for option in options:
+        keyboard.append([InlineKeyboardButton(option, callback_data=f"iwish_guess_{option}")])
+    
+    keyboard_markup = InlineKeyboardMarkup(keyboard)
+    
+    try:
+        if game_msg:
+            await game_msg.edit_text(
+                "🎵 *Guess my favorite music!* ❤️\n\n_Choose wisely..._ 😏💕",
+                reply_markup=keyboard_markup,
+                parse_mode=PARSE_MD
+            )
+        else:
+            message_id = context.user_data.get('iwish_game_message_id')
+            if message_id:
+                await context.bot.edit_message_text(
+                    chat_id=query.message.chat_id,
+                    message_id=message_id,
+                    text="🎵 *Guess my favorite music!* ❤️\n\n_Choose wisely..._ 😏💕",
+                    reply_markup=keyboard_markup,
+                    parse_mode=PARSE_MD
+                )
+    except Exception:
+        new_msg = await query.message.reply_text(
+            "🎵 *Guess my favorite music!* ❤️\n\n_Choose wisely..._ 😏💕",
+            reply_markup=keyboard_markup,
+            parse_mode=PARSE_MD
+        )
+        context.user_data['iwish_game_message_id'] = new_msg.message_id
+
+async def handle_iwish_guess(update, context, query, guess):
+    await query.answer("❌ Wrong!", show_alert=True)
+    
+    options = context.user_data.get('iwish_options', [])
+    if guess in options:
+        options.remove(guess)
+        context.user_data['iwish_options'] = options
+    
+    await show_music_options(update, context, query, None)
+
+async def play_iwish_song(update, context, query):
+    await query.message.reply_text("🎶 *Just listen...* 🎶", parse_mode=PARSE_MD)
+    
+    await safe_send_audio(context, query.message.chat_id, FILES["singing_clip"], "My Favorite Music")
+    
+    await asyncio.sleep(2)
+    
+    await query.message.reply_text(
+        "The only sound I can listen to forever without ever getting bored is the melody of your voice. ❤️",
+        parse_mode=PARSE_MD
+    )
+    
+    context.user_data['iwish_state'] = None
+    context.user_data.pop('iwish_options', None)
+    context.user_data.pop('iwish_game_message_id', None)
+    
+    await send_chapter_navigation(update, context, "22_reasons", "continue_to_reasons")
+
+# ==============================
+# GRAND FINALE
+# ==============================
+
+async def handle_continue_to_finale(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    await edit_navigation_message(
+        update, context,
+        "🎁 *The final chapter...* 🎁\n\n_I saved the best for last..._ ❤️"
+    )
+    
+    await query.message.reply_text(
+        "You've come this far... ❤️\n\n"
+        "But I still have one last surprise waiting for you.\n\n"
+        "I saved the best for the end. 🥹✨\n\n"
+        "Are you ready?",
+        reply_markup=create_single_button("🎈 Birthday Game", "launch_game"),
+        parse_mode=PARSE_MD
+    )
+
+async def handle_launch_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    await edit_navigation_message(
+        update, context,
+        "🎈 *Opening your final surprise...* 🎈\n\n_This is what I've been waiting for..._ ❤️"
+    )
+    
+    await animate_game_reveal(update, context)
+    
+    await query.message.reply_text(
+        "🎂 Everything is ready!\n\n"
+        "Tap the button below to begin your birthday game. ❤️",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🎈 Play Birthday Game", web_app=WebAppInfo(GAME_URL))]
+        ])
+    )
+    
+    context.user_data['game_launched'] = True
+
+async def handle_return_from_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update) or not context.user_data.get('game_launched', False):
+        return
+    
+    await update.message.reply_text(
+        "Happy Birthday, My Love. ❤️\n\n"
+        "I know this little bot can't replace being beside you tonight...\n\n"
+        "But every photo,\n"
+        "every song,\n"
+        "every memory,\n"
+        "every line of code,\n"
+        "and every little surprise...\n\n"
+        "was made with all my love.\n\n"
+        "Thank you for being the most beautiful part of my life.\n\n"
+        "I love you forever. ❤️"
+    )
+    
+    context.user_data['game_launched'] = False
+
+# ==============================
+# CALLBACK ROUTER
+# ==============================
+
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Unified callback handler - replaces multiple handlers"""
+    if not await check_access(update):
+        return
+    
+    query = update.callback_query
+    data = query.data
+    
+    # Navigation callbacks
+    if data in ["begin_journey", "continue_to_song", "continue_to_iwish", 
+                "continue_to_reasons", "continue_to_finale", "launch_game", "return_from_game"]:
+        handlers = {
+            "begin_journey": handle_begin_journey,
+            "continue_to_song": handle_continue_to_song,
+            "continue_to_iwish": handle_continue_to_iwish,
+            "continue_to_reasons": handle_continue_to_reasons,
+            "continue_to_finale": handle_continue_to_finale,
+            "launch_game": handle_launch_game,
+            "return_from_game": handle_return_from_game,
+        }
+        await handlers[data](update, context)
+    
+    # I Wish callbacks
+    elif data.startswith("iwish_"):
+        if data == "iwish_reveal":
+            await handle_iwish_reveal(update, context, query)
+        elif data == "iwish_play":
+            await play_iwish_song(update, context, query)
+        elif data.startswith("iwish_guess_"):
+            guess = data.replace("iwish_guess_", "")
+            await handle_iwish_guess(update, context, query, guess)
+    
+    # Reasons callbacks
+    elif data.startswith("reasons_begin"):
+        await handle_reasons_begin(update, context)
+    elif data.startswith("reason_view_"):
+        await handle_reason_view(update, context)
+    elif data.startswith("reason_complete_"):
+        await handle_reason_complete(update, context)
+
+# ==============================
+# HELP COMMAND
+# ==============================
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update):
+        return
+    
+    await animate_sparkle(update, context)
+    await update.message.reply_text(
+        "📖 Available Commands\n\n"
+        "🌸 /start - Welcome screen\n"
+        "❓ /help - Help Menu"
+    )
+
+# ==============================
+# MAIN
+# ==============================
+
+def main():
+    if not BOT_TOKEN:
+        raise ValueError("BOT_TOKEN environment variable is missing!")
+    
+    app = Application.builder().token(BOT_TOKEN).build()
+    
+    # Command handlers
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_command))
+    
+    # Unified callback handler
+    app.add_handler(CallbackQueryHandler(handle_callback))
+    
+    # Conversation handler
+    conv_handler = ConversationHandler(
+        entry_points=[],
+        states={},
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+    app.add_handler(conv_handler)
+    
+    # Message handler
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            fallback_handler
+        )
+    )
+    
+    print("🤖 Bot is running successfully...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
